@@ -1,6 +1,7 @@
 # based on https://www.scratchapixel.com/lessons/3d-basic-rendering/rendering-3d-scene-overview/visibility-problem
 
 import pygame
+import math
 
 # goal: project 3 points onto screen space and rasterize into pygame
 
@@ -24,7 +25,9 @@ DOT_RADIUS = 5
 axis_of_rotation = 15  # line z = 15
 
 cube_coords = [[-5, -5, 10], [-5, -5, 20], [-5, 5, 10], [-5, 5, 20],
-                  [5, -5, 10], [5, -5, 20], [5, 5, 10], [5, 5, 20]]
+               [5, -5, 10], [5, -5, 20], [5, 5, 10], [5, 5, 20]]
+cube_polar_coords = []
+cube_center = [0, 0, 0]
 
 
 def project_point(point: list):
@@ -33,7 +36,7 @@ def project_point(point: list):
 
 
 def project_list(point_list):
-    output_coords = point_list
+    output_coords = point_list.copy()
     for i in range(len(point_list)):
         print(i)
         output_coords[i] = project_point(point_list[i])
@@ -48,7 +51,7 @@ def normalize_point(projected_point):
 
 
 def normalize_list(projected_point_list):
-    normalized_point_list = projected_point_list
+    normalized_point_list = projected_point_list.copy()
     for i in range(len(projected_point_list)):
         normalized_point_list[i] = normalize_point(projected_point_list[i])
     return normalized_point_list
@@ -68,16 +71,16 @@ def rasterize_point(normalized_point):
 
 
 def rasterize_list(normalized_point_list):
-    rasterized_point_list = normalized_point_list
+    rasterized_point_list = normalized_point_list.copy()
     for i in range(len(normalized_point_list)):
         rasterized_point_list[i] = rasterize_point(normalized_point_list[i])
     return rasterized_point_list
 
 
 def draw_cube_edges(raster_space_coordinates, window, color):
-    #point_combinations = [[raster_space_coordinates[i], raster_space_coordinates[j]] for i in range(len(raster_space_coordinates)) for j in range(len(raster_space_coordinates))]
+    # point_combinations = [[raster_space_coordinates[i], raster_space_coordinates[j]] for i in range(len(raster_space_coordinates)) for j in range(len(raster_space_coordinates))]
     point_combinations = raster_space_coordinates
-    #print(point_combinations)
+    # print(point_combinations)
     # if True:
     #     point_combinations = point_combinations[0::2]  # can be fun to get funky line combinations
     for i in range(len(point_combinations)):
@@ -87,11 +90,12 @@ def draw_cube_edges(raster_space_coordinates, window, color):
 def render_points(vertices, window, edges):
     rasterized_vertices = rasterize_list(normalize_list(project_list(vertices)))
     cube_edges = [[rasterized_vertices[a], rasterized_vertices[b]] for [a, b] in good_edges]
-    #print(f'raster space coords: {rasterized_vertices}')
+    # print(f'raster space coords: {rasterized_vertices}')
     for i in range(len(rasterized_vertices)):
         pygame.draw.circle(window, DOT_COLOR, rasterized_vertices[i], DOT_RADIUS)
     if edges:
         draw_cube_edges(cube_edges, window, DOT_COLOR)
+
 
 # #tests
 # # print(f'projected point: {project_point([-1, 2, 10])}')
@@ -117,31 +121,59 @@ def render_points(vertices, window, edges):
 # for i in range(len(rasterize_test_list)):
 #     assert 0 <= rasterized_list[i][0] < SCREEN_WIDTH and 0 <= rasterized_list[i][1] < SCREEN_HEIGHT
 
+
 def find_center(point_list):
     num_points = len(point_list)
-    mean_x = [print(point_list[i][0]) for i in range(len(point_list))]
-    # mean_x = sum([point_list[i][0] for i in range(len(point_list))]) /num_points
-    print(f'Meanx: {mean_x}')
+    mean_x = sum([point_list[i][0] for i in range(len(point_list))]) / num_points
+    mean_y = sum([point_list[i][1] for i in range(len(point_list))]) / num_points
+    mean_z = sum([point_list[i][2] for i in range(len(point_list))]) / num_points
+    print(f'Mean: ({mean_x}, {mean_y}, {mean_z})')
+    return [mean_x, mean_y, mean_z]
 
+
+def convert_cartesian_point_to_polar2d3d(c_point,
+                                         center):  # gives polar coordinate of a point. center = center of rotation
+    # e.g. rotating a 3d point around the z axis
+    p_point = [math.atan2(c_point[1] - center[1], c_point[0] - center[0]),
+               math.hypot(c_point[1] - center[1], c_point[0] - center[0]), c_point[2]]
+    return p_point
+
+
+def convert_polar_point_to_cartesian2d3d(p_point, center):
+    c_point = [center[0] + p_point[1] * math.cos(p_point[0]), \
+               center[1] + p_point[0] * math.sin(p_point[0]), p_point[2]]
+    return c_point
+
+
+def rotateZ(pure_points, center, radians):
+    for i in range(len(pure_points)):
+        polar = convert_cartesian_point_to_polar2d3d(pure_points[i], center)
+        polar[1] += radians
+        cartesian = convert_polar_point_to_cartesian2d3d(polar, center)
+        pure_points[i] = cartesian
+    return pure_points
+
+
+cube_center = find_center(cube_coords)
 
 good_edges = [[0, 1], [0, 2], [0, 4], [1, 3], [1, 5], [2, 3], [2, 6], [3, 7], [4, 5], [4, 6], [5, 7], [6, 7]]
 
 print(f'cube coords: {cube_coords}')
-run = 0
-while True:
+run = True
+while run:
     clock.tick(FPS)
 
-    print(cube_coords)
-    find_center(cube_coords)
+    #rotateZ(cube_coords, cube_center, 0.1)
+    #print(f'cube coords: {cube_coords}')
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
             exit()
 
-    if run < 1:
-        window.fill(PURPLE)
-        render_points(cube_coords, window, edges=True)
+
+    window.fill(PURPLE)
+    render_points(cube_coords, window, edges=True)
 
     run += 1
     pygame.display.update()
