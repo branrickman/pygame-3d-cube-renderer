@@ -38,7 +38,6 @@ def project_point(point: list):
 def project_list(point_list):
     output_coords = point_list.copy()
     for i in range(len(point_list)):
-        print(i)
         output_coords[i] = project_point(point_list[i])
     return output_coords
 
@@ -144,36 +143,112 @@ def convert_polar_point_to_cartesian2d3d(p_point, center):
                center[1] + p_point[0] * math.sin(p_point[0]), p_point[2]]
     return c_point
 
+# coord_examples = [[a, b, c] for a in range(-10, 10) for b in range(-10, 10) for c in range(-10, 10)]
+# center_examples = [[d, e] for d in range(-10, 10) for e in range(-10, 10)]
+# for i in range(len(coord_examples)):
+#     for j in range(len(center_examples)):
+#         try:
+#             assert convert_polar_point_to_cartesian2d3d(convert_cartesian_point_to_polar2d3d(coord_examples[i], center_examples[j]), center_examples[j]) == coord_examples[i]
+#         except AssertionError:
+#             print(f'Failed at: ({coord_examples[i]}, {center_examples[j]})')
+#             raise Exception('Error: coordinate conversion test failed')
 
-def rotateZ(pure_points, center, radians):
-    for i in range(len(pure_points)):
-        polar = convert_cartesian_point_to_polar2d3d(pure_points[i], center)
-        polar[1] += radians
-        cartesian = convert_polar_point_to_cartesian2d3d(polar, center)
-        pure_points[i] = cartesian
-    return pure_points
+# def rotateZ(pure_points, center, radians):
+#     for i in range(len(pure_points)):
+#         polar = convert_cartesian_point_to_polar2d3d(pure_points[i], center)
+#         polar[1] += radians
+#         cartesian = convert_polar_point_to_cartesian2d3d(polar, center)
+#         pure_points[i] = cartesian
+#     return pure_points
+
+
+# https://www.petercollingridge.co.uk/tutorials/3d/pygame/rotation/ oct 10, 2021
+def rotateX(points, center, radians):
+    for i in range(len(points)):
+        z = points[i][2] - center[2]
+        y = points[i][1] - center[1]
+        x = points[i][0]
+        d = math.hypot(y, z)
+        theta = math.atan2(y, z) + radians
+        points[i][2] = center[2] + d * math.cos(theta)
+        points[i][1] = center[1] + d * math.sin(theta)
+    return points
+
+
+def rotateY(points, center, radians):
+    for i in range(len(points)):
+        x = points[i][0] - center[0]
+        z = points[i][2] - center[2]
+        # y = points[i][1]
+        d = math.hypot(x, z)
+        theta = math.atan2(x, z) + radians
+        points[i][2] = center[2] + d * math.cos(theta)
+        points[i][0] = center[0] + d * math.sin(theta)
+    return points
+
+
+def rotateZ(points, center, radians):
+    for i in range(len(points)):
+        x = points[i][0] - center[0]
+        y = points[i][1] - center[1]
+        z = points[i][2]
+        d = math.hypot(y, x)
+        theta = math.atan2(y, x) + radians
+        points[i][0] = center[0] + d * math.cos(theta)
+        points[i][1] = center[1] + d * math.sin(theta)
+    return points
+
+
+# #weird
+# def rotateAll(axis, points, theta):
+#     rotateFunction = 'rotate' + axis
+#     return rotateFunction
 
 
 cube_center = find_center(cube_coords)
 
 good_edges = [[0, 1], [0, 2], [0, 4], [1, 3], [1, 5], [2, 3], [2, 6], [3, 7], [4, 5], [4, 6], [5, 7], [6, 7]]
 
-print(f'cube coords: {cube_coords}')
+t_x = False  # "turning around the x axis"
+t_y = False
+t_z = False
+t_mx = False  # "turning negatively around the x axis"
+t_my = False
+t_mz = False
+
+static_demo = False
+play = True
 run = True
 while run:
     clock.tick(FPS)
 
-    #rotateZ(cube_coords, cube_center, 0.1)
-    #print(f'cube coords: {cube_coords}')
+    if static_demo:
+        cube_coords = rotateX(cube_coords, cube_center, 0.01)
+        cube_coords = rotateY(cube_coords, cube_center, 0.01)
+        #cube_coords = rotateZ(cube_coords, cube_center, 0.01)
+
+    # print(f'cube coords: {cube_coords}')
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
             exit()
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_a:
+                t_x = True
+                t_mx = False
+            if event.key == pygame.K_d:
+                t_x = False
+                t_mx = True
+        if event.type == pygame.KEYUP:
+            if event.key == pygame.K_a:
+                t_x = False
+            if event.key == pygame.K_d:
+                t_mx = False
 
+    if play:
+        # TODO: Add handling for t_x and t_mx type state variables. Each step should rotate the cube along some axis if turn var is true
+        window.fill(PURPLE)
+        render_points(cube_coords, window, edges=True)
 
-    window.fill(PURPLE)
-    render_points(cube_coords, window, edges=True)
-
-    run += 1
     pygame.display.update()
