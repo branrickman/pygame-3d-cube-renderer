@@ -200,6 +200,7 @@ t_mz = False
 static_demo = False
 funk_mode = False
 funk_level = 1
+autofunk = False
 play = True
 run = True
 while run:
@@ -209,6 +210,11 @@ while run:
         cube_coordinates = rotateX(cube_coordinates, cube_center, 0.01)
         cube_coordinates = rotateY(cube_coordinates, cube_center, 0.01)
         # cube_coords = rotateZ(cube_coords, cube_center, 0.01)
+    if autofunk and pygame.time.get_ticks() % FPS == 0:
+        funk_level = (funk_level + 1) % len(cube_coordinates)
+        if funk_level == 0:
+            funk_level = 1
+
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -239,6 +245,9 @@ while run:
                 if funk_level == 0:
                     funk_level = 1
                     print(f'Gotta have that funk (and not divide by 0)')
+            if event.key == pygame.K_p:
+                autofunk = not autofunk
+                funk_mode = not funk_mode
         if event.type == pygame.KEYUP:
             if event.key == pygame.K_s:
                 t_x = False
