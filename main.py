@@ -143,24 +143,6 @@ def convert_polar_point_to_cartesian2d3d(p_point, center):
                center[1] + p_point[0] * math.sin(p_point[0]), p_point[2]]
     return c_point
 
-# coord_examples = [[a, b, c] for a in range(-10, 10) for b in range(-10, 10) for c in range(-10, 10)]
-# center_examples = [[d, e] for d in range(-10, 10) for e in range(-10, 10)]
-# for i in range(len(coord_examples)):
-#     for j in range(len(center_examples)):
-#         try:
-#             assert convert_polar_point_to_cartesian2d3d(convert_cartesian_point_to_polar2d3d(coord_examples[i], center_examples[j]), center_examples[j]) == coord_examples[i]
-#         except AssertionError:
-#             print(f'Failed at: ({coord_examples[i]}, {center_examples[j]})')
-#             raise Exception('Error: coordinate conversion test failed')
-
-# def rotateZ(pure_points, center, radians):
-#     for i in range(len(pure_points)):
-#         polar = convert_cartesian_point_to_polar2d3d(pure_points[i], center)
-#         polar[1] += radians
-#         cartesian = convert_polar_point_to_cartesian2d3d(polar, center)
-#         pure_points[i] = cartesian
-#     return pure_points
-
 
 # https://www.petercollingridge.co.uk/tutorials/3d/pygame/rotation/ oct 10, 2021
 def rotateX(points, center, radians):
@@ -208,6 +190,7 @@ def rotateZ(points, center, radians):
 cube_center = find_center(cube_coords)
 
 good_edges = [[0, 1], [0, 2], [0, 4], [1, 3], [1, 5], [2, 3], [2, 6], [3, 7], [4, 5], [4, 6], [5, 7], [6, 7]]
+all_edges =  [[raster_space_coordinates[i], raster_space_coordinates[j]] for i in range(len(raster_space_coordinates)) for j in range(len(raster_space_coordinates))]
 
 t_x = False  # "turning around the x axis"
 t_y = False
@@ -225,29 +208,62 @@ while run:
     if static_demo:
         cube_coords = rotateX(cube_coords, cube_center, 0.01)
         cube_coords = rotateY(cube_coords, cube_center, 0.01)
-        #cube_coords = rotateZ(cube_coords, cube_center, 0.01)
-
-    # print(f'cube coords: {cube_coords}')
+        # cube_coords = rotateZ(cube_coords, cube_center, 0.01)
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
             exit()
         if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_a:
+            if event.key == pygame.K_s:
                 t_x = True
                 t_mx = False
-            if event.key == pygame.K_d:
+            if event.key == pygame.K_w:
                 t_x = False
                 t_mx = True
-        if event.type == pygame.KEYUP:
             if event.key == pygame.K_a:
-                t_x = False
+                t_y = True
+                t_my = False
             if event.key == pygame.K_d:
+                t_y = False
+                t_my = True
+            if event.key == pygame.K_q:
+                t_z = True
+                t_mz = False
+            if event.key == pygame.K_e:
+                t_z = False
+                t_mz = True
+        if event.type == pygame.KEYUP:
+            if event.key == pygame.K_s:
+                t_x = False
+            if event.key == pygame.K_w:
                 t_mx = False
+            if event.key == pygame.K_a:
+                t_y = False
+            if event.key == pygame.K_d:
+                t_my = False
+            if event.key == pygame.K_q:
+                t_z = False
+            if event.key == pygame.K_e:
+                t_mz = False
+            if event.key == pygame.K_SPACE:
+                static_demo = not static_demo
 
     if play:
         # TODO: Add handling for t_x and t_mx type state variables. Each step should rotate the cube along some axis if turn var is true
+        if t_x:
+            rotateX(cube_coords, cube_center, 0.03)
+        if t_mx:
+            rotateX(cube_coords, cube_center, -0.03)
+        if t_y:
+            rotateY(cube_coords, cube_center, 0.03)
+        if t_my:
+            rotateY(cube_coords, cube_center, -0.03)
+        if t_z:
+            rotateZ(cube_coords, cube_center, 0.03)
+        if t_mz:
+            rotateZ(cube_coords, cube_center, -0.03)
+
         window.fill(PURPLE)
         render_points(cube_coords, window, edges=True)
 
