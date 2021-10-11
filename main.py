@@ -7,8 +7,8 @@ import math
 
 pygame.init()
 
-SCREEN_HEIGHT = 800
-SCREEN_WIDTH = 800
+SCREEN_HEIGHT = 1000
+SCREEN_WIDTH = 1000
 screen_to_eye = 1
 
 window = pygame.display.set_mode((SCREEN_HEIGHT, SCREEN_WIDTH))
@@ -24,10 +24,9 @@ DOT_RADIUS = 5
 
 axis_of_rotation = 15  # line z = 15
 
-cube_coords = [[-5, -5, 10], [-5, -5, 20], [-5, 5, 10], [-5, 5, 20],
-               [5, -5, 10], [5, -5, 20], [5, 5, 10], [5, 5, 20]]
-cube_polar_coords = []
-cube_center = [0, 0, 0]
+cube_coordinates = [[-5, -5, 10], [-5, -5, 20], [-5, 5, 10], [-5, 5, 20],
+                    [5, -5, 10], [5, -5, 20], [5, 5, 10], [5, 5, 20]]
+cube_polar_coordinates = []
 
 
 def project_point(point: list):
@@ -76,24 +75,22 @@ def rasterize_list(normalized_point_list):
     return rasterized_point_list
 
 
-def draw_cube_edges(raster_space_coordinates, window, color):
-    # point_combinations = [[raster_space_coordinates[i], raster_space_coordinates[j]] for i in range(len(raster_space_coordinates)) for j in range(len(raster_space_coordinates))]
+def draw_cube_edges(raster_space_coordinates, window, color, funky_mode, funk_level):
     point_combinations = raster_space_coordinates
-    # print(point_combinations)
-    # if True:
-    #     point_combinations = point_combinations[0::2]  # can be fun to get funky line combinations
+    if funky_mode:
+        point_combinations = point_combinations[0::funk_level]  # can be fun to get funky line combinations
     for i in range(len(point_combinations)):
         pygame.draw.line(window, color, point_combinations[i][0], point_combinations[i][1], 2)
 
 
-def render_points(vertices, window, edges):
+def render_points(vertices, window, edges, edge_list):
     rasterized_vertices = rasterize_list(normalize_list(project_list(vertices)))
-    cube_edges = [[rasterized_vertices[a], rasterized_vertices[b]] for [a, b] in good_edges]
+    cube_edges = [[rasterized_vertices[a], rasterized_vertices[b]] for [a, b] in edge_list]
     # print(f'raster space coords: {rasterized_vertices}')
     for i in range(len(rasterized_vertices)):
         pygame.draw.circle(window, DOT_COLOR, rasterized_vertices[i], DOT_RADIUS)
     if edges:
-        draw_cube_edges(cube_edges, window, DOT_COLOR)
+        draw_cube_edges(cube_edges, window, DOT_COLOR, funk_mode, funk_level)
 
 
 # #tests
@@ -126,22 +123,7 @@ def find_center(point_list):
     mean_x = sum([point_list[i][0] for i in range(len(point_list))]) / num_points
     mean_y = sum([point_list[i][1] for i in range(len(point_list))]) / num_points
     mean_z = sum([point_list[i][2] for i in range(len(point_list))]) / num_points
-    print(f'Mean: ({mean_x}, {mean_y}, {mean_z})')
     return [mean_x, mean_y, mean_z]
-
-
-def convert_cartesian_point_to_polar2d3d(c_point,
-                                         center):  # gives polar coordinate of a point. center = center of rotation
-    # e.g. rotating a 3d point around the z axis
-    p_point = [math.atan2(c_point[1] - center[1], c_point[0] - center[0]),
-               math.hypot(c_point[1] - center[1], c_point[0] - center[0]), c_point[2]]
-    return p_point
-
-
-def convert_polar_point_to_cartesian2d3d(p_point, center):
-    c_point = [center[0] + p_point[1] * math.cos(p_point[0]), \
-               center[1] + p_point[0] * math.sin(p_point[0]), p_point[2]]
-    return c_point
 
 
 # https://www.petercollingridge.co.uk/tutorials/3d/pygame/rotation/ oct 10, 2021
@@ -187,27 +169,45 @@ def rotateZ(points, center, radians):
 #     return rotateFunction
 
 
-cube_center = find_center(cube_coords)
+cube_center = find_center(cube_coordinates)
 
 good_edges = [[0, 1], [0, 2], [0, 4], [1, 3], [1, 5], [2, 3], [2, 6], [3, 7], [4, 5], [4, 6], [5, 7], [6, 7]]
-all_edges =  [[raster_space_coordinates[i], raster_space_coordinates[j]] for i in range(len(raster_space_coordinates)) for j in range(len(raster_space_coordinates))]
+all_edges = [[i, j] for i in range(len(cube_coordinates)) for j in range(len(cube_coordinates))]
+all_surface_edges = all_edges.copy()
+all_surface_edges.remove([2, 5])
+all_surface_edges.remove([5, 2])
+
+all_surface_edges.remove([0, 7])
+all_surface_edges.remove([7, 0])
+
+all_surface_edges.remove([3, 4])
+all_surface_edges.remove([4, 3])
+
+all_surface_edges.remove([1, 6])
+all_surface_edges.remove([6, 1])
+
+active_edges = [good_edges, all_edges, all_surface_edges, []]
+selected_edge = 0
 
 t_x = False  # "turning around the x axis"
 t_y = False
 t_z = False
+
 t_mx = False  # "turning negatively around the x axis"
 t_my = False
 t_mz = False
 
 static_demo = False
+funk_mode = False
+funk_level = 1
 play = True
 run = True
 while run:
     clock.tick(FPS)
 
     if static_demo:
-        cube_coords = rotateX(cube_coords, cube_center, 0.01)
-        cube_coords = rotateY(cube_coords, cube_center, 0.01)
+        cube_coordinates = rotateX(cube_coordinates, cube_center, 0.01)
+        cube_coordinates = rotateY(cube_coordinates, cube_center, 0.01)
         # cube_coords = rotateZ(cube_coords, cube_center, 0.01)
 
     for event in pygame.event.get():
@@ -233,6 +233,12 @@ while run:
             if event.key == pygame.K_e:
                 t_z = False
                 t_mz = True
+            if event.key == pygame.K_f:
+                funk_mode = True
+                funk_level = (funk_level + 1) % 12
+                if funk_level == 0:
+                    funk_level = 1
+                    print(f'Gotta have that funk (and not divide by 0)')
         if event.type == pygame.KEYUP:
             if event.key == pygame.K_s:
                 t_x = False
@@ -248,23 +254,26 @@ while run:
                 t_mz = False
             if event.key == pygame.K_SPACE:
                 static_demo = not static_demo
+            if event.key == pygame.K_t:
+                selected_edge = (selected_edge + 1) % len(active_edges)
+
 
     if play:
         # TODO: Add handling for t_x and t_mx type state variables. Each step should rotate the cube along some axis if turn var is true
         if t_x:
-            rotateX(cube_coords, cube_center, 0.03)
+            rotateX(cube_coordinates, cube_center, 0.03)
         if t_mx:
-            rotateX(cube_coords, cube_center, -0.03)
+            rotateX(cube_coordinates, cube_center, -0.03)
         if t_y:
-            rotateY(cube_coords, cube_center, 0.03)
+            rotateY(cube_coordinates, cube_center, 0.03)
         if t_my:
-            rotateY(cube_coords, cube_center, -0.03)
+            rotateY(cube_coordinates, cube_center, -0.03)
         if t_z:
-            rotateZ(cube_coords, cube_center, 0.03)
+            rotateZ(cube_coordinates, cube_center, 0.03)
         if t_mz:
-            rotateZ(cube_coords, cube_center, -0.03)
+            rotateZ(cube_coordinates, cube_center, -0.03)
 
         window.fill(PURPLE)
-        render_points(cube_coords, window, edges=True)
+        render_points(cube_coordinates, window, True, active_edges[selected_edge])
 
     pygame.display.update()
