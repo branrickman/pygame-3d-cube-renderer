@@ -1,4 +1,4 @@
-# Simple pygame renderer
+# Simple 3D Renderer in Pygame
 
 ### Controls:
 - x-axis:
@@ -12,3 +12,8 @@
   - **SPACE**
 - Change edge mode:
   - **T**
+- Easter Egg Mode:
+  - **F**
+
+### Demo
+![](demo/3d-render-demo.gif)
